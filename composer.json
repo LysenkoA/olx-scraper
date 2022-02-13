@@ -1,0 +1,25 @@
+{
+    "name": "olysenko/olx-scraper",
+    "description": "Olx scraper",
+    "autoload": {
+        "psr-4": {
+            "OlxScraper\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Oleksandr Lysenko",
+            "email": "a.lysenko.25@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "ext-dom": "*",
+        "ext-libxml": "*",
+        "ext-curl": "*"
+    },
+    "require-dev": {
+
+    },
+    "minimum-stability": "dev"
+}
