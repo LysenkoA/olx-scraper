@@ -2,8 +2,8 @@
 
 namespace OlxScraper;
 
-use OlxScraper\Entities\Offer;
 use OlxScraper\Entities\OfferCollection;
+use OlxScraper\Factories\OfferFactory;
 use OlxScraper\HtmlParsing\Parsers\OfferListParserInterface;
 use OlxScraper\Logging\LoggerInterface;
 use OlxScraper\Logging\NullLogger;
@@ -13,6 +13,7 @@ class Scraper
 {
     private OfferCollection $offerCollection;
     private LoggerInterface $logger;
+    private OfferFactory $offerFactory;
 
     public function __construct(
         private ProviderInterface $provider,
@@ -22,6 +23,7 @@ class Scraper
         $this->offerCollection = new OfferCollection();
         $this->logger = $logger ?? new NullLogger();
         $this->provider->setLogger($this->logger);
+        $this->offerFactory = new OfferFactory();
     }
 
     public function run(): void
@@ -40,7 +42,7 @@ class Scraper
 
             foreach ($offers as $offerDTO) {
                 $this->offerCollection->addOffer(
-                    new Offer($offerDTO)
+                    $this->offerFactory->makeFromOfferDTO($offerDTO)
                 );
             }
         }

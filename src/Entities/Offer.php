@@ -2,63 +2,57 @@
 
 namespace OlxScraper\Entities;
 
-use OlxScraper\HtmlParsing\DTO\OfferDTO;
-
 class Offer
 {
     public function __construct(
-        private OfferDTO $offerDTO
+        private int $id,
+        private string $name,
+        private string $link,
+        private float $price,
+        private string $originalPrice,
+        private string $city,
+        private string $district,
+        private string $date
     ) {
     }
 
     public function getId(): int
     {
-        return (int) $this->offerDTO->id;
+        return $this->id;
     }
 
     public function getName(): string
     {
-        return $this->offerDTO->name;
+        return $this->name;
     }
 
     public function getUrl(): string
     {
-        return $this->offerDTO->link;
+        return $this->link;
     }
 
     public function getPrice(): float
     {
-        return floatval(
-            str_replace(
-                ['грн.', '$', '€', ' '],
-                '',
-                $this->offerDTO->price
-            )
-        );
+        return $this->price;
     }
 
     public function getOriginalPrice(): string
     {
-        return $this->offerDTO->price;
+        return $this->originalPrice;
     }
 
-    public function getCity()
+    public function getCity(): string
     {
-        return $this->offerDTO->city;
+        return $this->city;
     }
 
-    public function getDistrict()
+    public function getDistrict(): string
     {
-        return $this->offerDTO->district;
+        return $this->district;
     }
 
     public function getDate(): string
     {
-        return date(
-            'Y-m-d H:i:s',
-            strtotime(
-                str_replace(['Сьогодні', 'Сегодня'], 'Today', $this->offerDTO->date)
-            )
-        );
+        return $this->date;
     }
 }

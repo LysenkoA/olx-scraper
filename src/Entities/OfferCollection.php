@@ -4,10 +4,9 @@ namespace OlxScraper\Entities;
 
 class OfferCollection
 {
-    private array $offers = [];
-
-    public function __construct()
-    {
+    public function __construct(
+        private array $offers = []
+    ) {
     }
 
     public function addOffer(Offer $offer): self
