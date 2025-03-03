@@ -11,4 +11,5 @@ class OfferDTO
     public string $city;
     public string $district;
     public string $date;
+    public string $previewImgUrl;
 }

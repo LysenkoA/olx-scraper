@@ -2,8 +2,8 @@
 
 namespace OlxScraper\HtmlParsing\Parsers\DOMDocument;
 
-use DOMDocument;
 use DOMElement;
+use DOMNodeList;
 use OlxScraper\Exceptions\ParsingException;
 use OlxScraper\HtmlParsing\DTO\OfferDTO;
 use OlxScraper\HtmlParsing\DTO\OfferDTOCollection;
@@ -41,29 +41,25 @@ class DOMDocumentOfferListParser implements OfferListParserInterface
 
     public function parse(): static
     {
-        $containerWithOffers = $this->getContainerWithOffers();
-        $offers = $containerWithOffers->getElementsByTagName('table');
+        $offers = $this->getDOMElementsWithOffers();
 
         /** @var DOMElement $offer */
         foreach ($offers as $offer) {
             try {
                 $finder = new DomElementFinder($offer);
-                $offerDTO = new OfferDTO();
-                $offerDTO->id = $finder->getAttribute('data-id');
-                $offerDTO->name = trim($finder->getFirstByTagNames(['h3', 'a'])->textContent);
-                $offerDTO->link = $finder->getFirstByTagNames(['h3', 'a'])->getAttribute('href');
-                $offerDTO->price = $finder->getFirstTextContentByTagNameAndClass('p', 'price');
 
-                $elements = $finder
-                    ->getFirstByTagNameAndClass('td', 'bottom-cell')
-                    ->getElementsByTagName('small');
-                $locationParts = array_map(
-                    fn(string $locationPart) => trim($locationPart),
-                    explode(',', trim($elements->item(0)->textContent))
-                );
-                $offerDTO->city = $locationParts[0] ?? '';
-                $offerDTO->district = $locationParts[1] ?? '';
-                $offerDTO->date = trim($elements->item(1)->textContent);
+                $offerDTO = new OfferDTO();
+                $offerDTO->id = $finder->getAttribute('id');
+                $offerDTO->name = trim($finder->getFirstByTagName('h4')->textContent);
+                $offerDTO->link = $finder->getFirstByTagName('a')->getAttribute('href');
+                $offerDTO->price = $this->resolvePrice($offer);
+
+                $locationAndDate = $this->resolveLocationAndDate($offer);
+
+                $offerDTO->city = $locationAndDate['city'];
+                $offerDTO->district = $locationAndDate['district'];
+                $offerDTO->date = $locationAndDate['date'];
+                $offerDTO->previewImgUrl = $this->resolveImageUrl($finder);
                 $this->offers->add($offerDTO);
             } catch (ParsingException $exception) {
                 if (is_callable($this->afterFailCallback)) {
@@ -84,16 +80,75 @@ class DOMDocumentOfferListParser implements OfferListParserInterface
     }
 
     /**
-     * @return DOMElement
-     * @throws ParsingException
+     * @return array<DOMElement>
      */
-    private function getContainerWithOffers(): DOMElement
+    public function getDOMElementsWithOffers(): array
     {
-        $offersTable = $this->domDocumentProvider->getInstance()->getElementById('offers_table');
-        if (!$offersTable) {
-            throw new ParsingException("Element with id #offers_table not found");
+        $elements = $this->domDocumentProvider->getInstance()->getElementsByTagName("div");
+
+        $DOMElementsArray = [];
+
+        foreach ($elements as $element) {
+            if ($element->getAttribute("data-cy") === "l-card") {
+                $DOMElementsArray[] = $element;
+            }
         }
 
-        return $offersTable;
+        return $DOMElementsArray;
+    }
+
+    private function getFirstByAttributeAndValue(DOMNodeList $childNodes, string $attribute, string $value): ?DOMElement
+    {
+        foreach ($childNodes as $childElement) {
+            if (
+                $childElement instanceof DOMElement
+                && $childElement->hasAttribute($attribute)
+                && $childElement->getAttribute($attribute) === $value
+            ) {
+                return $childElement;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolvePrice(DOMElement $element): string
+    {
+        $childNodes = $element->getElementsByTagName('p');
+        $element = $this->getFirstByAttributeAndValue($childNodes, 'data-testid', 'ad-price');
+
+        return $element ? trim($element->nodeValue) : '';
+    }
+
+    private function resolveLocationAndDate(DOMElement $element): array
+    {
+        $childNodes = $element->getElementsByTagName('p');
+        $element = $this->getFirstByAttributeAndValue($childNodes, 'data-testid', 'location-date');
+
+        $parts = explode('-', $element->textContent);
+
+        $locationParts = $parts[0] ? explode(',', $parts[0]) : '';
+        $date = $parts[1] ? trim($parts[1]) : '';
+
+        return [
+            'city' => isset($locationParts[0]) ? trim($locationParts[0]) : '',
+            'district' => isset($locationParts[1]) ? trim($locationParts[1]) : '',
+            'date' => $date,
+        ];
+    }
+
+    private function resolveImageUrl(DomElementFinder $finder): string
+    {
+        $defaultImageUrl = $finder->getFirstByTagName('img')->getAttribute('src');
+        $imageUrls = $finder->getFirstByTagName('img')->getAttribute('srcset');
+        $imageUrlsArray = explode(',', $imageUrls);
+
+        $imageUrl = ($imageUrlsArray && is_array($imageUrlsArray) && count($imageUrlsArray) > 0)
+            ? array_pop($imageUrlsArray)
+            : null;
+
+        $url = $imageUrl ? trim($imageUrl) : $defaultImageUrl;
+
+        return str_contains($url, 'no_thumbnail') ? '' : $url;
     }
 }

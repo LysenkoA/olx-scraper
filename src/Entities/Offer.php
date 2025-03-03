@@ -12,7 +12,8 @@ class Offer
         private string $originalPrice,
         private string $city,
         private string $district,
-        private string $date
+        private string $date,
+        private string $previewImgUrl,
     ) {
     }
 
@@ -54,5 +55,10 @@ class Offer
     public function getDate(): string
     {
         return $this->date;
+    }
+
+    public function getPreviewImgUrl(): string
+    {
+        return $this->previewImgUrl;
     }
 }
